@@ -584,6 +584,18 @@
 
         Module.preRun = Module.preRun || [];
         Module.preRun.push(function() {
+          // Mount IDBFS for persistent savegames in IndexedDB
+          try {
+            // Emscripten config directories
+            FS.mkdir('/home');
+            FS.mkdir('/home/web_user');
+            FS.mkdir('/home/web_user/.config');
+            FS.mkdir('/home/web_user/.config/fallout2-ce');
+            FS.mount(IDBFS, {}, '/home/web_user/.config/fallout2-ce');
+          } catch(e) {
+            console.warn('IDBFS mount on home config failed:', e);
+          }
+
           FS.writeFile('master.dat', new Uint8Array(masterBuffer));
           FS.writeFile('critter.dat', new Uint8Array(critterBuffer));
           FS.writeFile('ddraw.ini', '[Misc]\nSkipOpeningMovies=1\n');
@@ -597,10 +609,34 @@
 
           // Create required directories
           try { FS.mkdir('data'); } catch(e) {}
+          
+          try {
+            // Create game save directory and mount IDBFS as fallback
+            FS.mkdir('data/savegame');
+            FS.mount(IDBFS, {}, 'data/savegame');
+          } catch(e) {
+            console.warn('IDBFS mount on data/savegame failed:', e);
+          }
+
           try { FS.mkdir('sound'); } catch(e) {}
           try { FS.mkdir('sound/music'); } catch(e) {}
           try { FS.mkdir('sound/sfx'); } catch(e) {}
+
+          // Synchronize from IndexedDB to virtual filesystem on boot
+          FS.syncfs(true, function(err) {
+            if (err) console.error('Failed to syncfs from IDBFS:', err);
+            else console.log('Successfully synced savegames from IDBFS');
+          });
         });
+
+        // Set up auto-syncing of save games from MEMFS back to IDBFS every 5 seconds
+        setInterval(function() {
+          if (gameStarted && typeof FS !== 'undefined') {
+            FS.syncfs(false, function(err) {
+              if (err) console.error('Auto-sync of savegames to IDBFS failed:', err);
+            });
+          }
+        }, 5000);
 
         // Hide start screen
         document.getElementById('start-screen').style.display = 'none';
