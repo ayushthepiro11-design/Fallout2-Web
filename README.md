@@ -1,5 +1,7 @@
 # ☢️ Fallout 2 Web Client
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Play the classic post-apocalyptic RPG **Fallout 2** directly inside your web browser. This is an unofficial web port powered by Emscripten and WebAssembly (`fallout2-ce`), fully optimized for static web hosting.
 
 ---
