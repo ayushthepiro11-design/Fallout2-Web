@@ -419,7 +419,9 @@
           masterArrayBuffer = mBuf;
           critterArrayBuffer = cBuf;
           
-          statusText.innerHTML = "SYSTEM READY.<br>Compiling WASM Engine & Writing MEMFS in background... (Wait)";
+          statusText.innerHTML = "SYSTEM READY.<br>Assets successfully pre-extracted to RAM!";
+          launchBtn.innerText = 'Initialize Game Runtime';
+          launchBtn.disabled = false;
         } else {
           statusText.innerHTML = "WARNING: Game databanks missing.<br>Please select or drag & drop MASTER.DAT and CRITTER.DAT from your local GOG or Steam installation folder to compile.";
           launchBtn.style.display = 'none';
@@ -470,7 +472,6 @@
       // Emscripten memory optimization: request 256MB initial, 512MB max
       INITIAL_MEMORY: 268435456,
       MAXIMUM_MEMORY: 536870912,
-      noInitialRun: true,
       mouseState: {dx: 0, dy: 0, lb: 0, rb: 0},
       preRun: [function() {
         // Pause WASM initialization until ArrayBuffers are ready
@@ -504,22 +505,21 @@
         }, 100);
       }],
       onRuntimeInitialized: function() {
-        // Engine is perfectly primed in RAM. Enable the button!
-        const launchBtn = document.getElementById('launch-btn');
-        const statusText = document.getElementById('status');
-        if (launchBtn) {
-          launchBtn.innerText = 'Initialize Game Runtime';
-          launchBtn.disabled = false;
-        }
-        if (statusText) statusText.innerHTML = "SYSTEM READY.<br>Assets pre-extracted and engine compiled!";
+        window.engineReady = true;
+        if (typeof checkBoot === 'function') checkBoot();
       }
     };
     
-    // Start downloading and compiling the WASM engine in the background immediately
-    var script = document.createElement('script');
-    script.src = 'fallout2-ce.js';
-    script.async = true;
-    document.body.appendChild(script);
+    // Sync flags for orchestrated boot
+    window.cinematicFinished = false;
+    window.engineReady = false;
+    function checkBoot() {
+      if (window.cinematicFinished && window.engineReady) {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        if (typeof resizeCanvas === 'function') resizeCanvas();
+      }
+    }
 
     // ─── Optimized Mouse Input (Absolute to Relative Bridge) ───
     // FocuSee and other screen recorders track the physical OS cursor. 
@@ -692,6 +692,12 @@
         loadingOverlay.style.display = 'flex';
         loadingText.innerHTML = 'Initializing WASM Runtime...';
         
+        // Start downloading and compiling the WASM engine NOW
+        var script = document.createElement('script');
+        script.src = 'fallout2-ce.js';
+        script.async = true;
+        document.body.appendChild(script);
+
         // Cinematic fake loading sequence for recording
         setTimeout(() => { loadingText.innerHTML = 'Mounting MASTER.DAT... <span style="color: #4ade80">[OK]</span>'; }, 600);
         setTimeout(() => { loadingText.innerHTML = 'Mounting CRITTER.DAT... <span style="color: #4ade80">[OK]</span>'; }, 1200);
@@ -699,14 +705,18 @@
         setTimeout(() => { loadingText.innerHTML = 'Booting Fallout 2 engine...'; }, 2400);
         
         setTimeout(() => {
-          loadingOverlay.style.display = 'none';
-          resizeCanvas();
-          // Instant boot from RAM!
-          Module.callMain();
+          window.cinematicFinished = true;
+          checkBoot();
         }, 3000);
       } else {
-        resizeCanvas();
-        Module.callMain();
+        // Fallback
+        var script = document.createElement('script');
+        script.src = 'fallout2-ce.js';
+        script.async = true;
+        document.body.appendChild(script);
+        
+        window.cinematicFinished = true;
+        checkBoot();
       }
     }
   </script>
