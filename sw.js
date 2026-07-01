@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fallout2-web-cache-v1';
+const CACHE_NAME = 'fallout2-web-cache-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
