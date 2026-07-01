@@ -393,6 +393,8 @@
 
     var cachedMasterBlob = null;
     var cachedCritterBlob = null;
+    var masterArrayBuffer = null;
+    var critterArrayBuffer = null;
 
     async function checkFiles() {
       try {
@@ -400,10 +402,26 @@
         cachedCritterBlob = await getFile('critter.dat');
 
         if (cachedMasterBlob && cachedCritterBlob) {
-          statusText.innerHTML = "SYSTEM READY.<br>MASTER.DAT (" + (cachedMasterBlob.size / 1024 / 1024).toFixed(1) + " MB) and CRITTER.DAT (" + (cachedCritterBlob.size / 1024 / 1024).toFixed(1) + " MB) loaded from local databanks.";
+          statusText.innerHTML = "SYSTEM READY.<br>MASTER.DAT (" + (cachedMasterBlob.size / 1024 / 1024).toFixed(1) + " MB) and CRITTER.DAT (" + (cachedCritterBlob.size / 1024 / 1024).toFixed(1) + " MB) loaded from local databanks.<br><span style='color:yellow'>Pre-extracting assets to memory...</span>";
+          
           launchBtn.style.display = 'block';
+          launchBtn.disabled = true;
+          launchBtn.innerText = 'Extracting... (Wait)';
           resetBtn.style.display = 'block';
           uploadZone.style.display = 'none';
+
+          // PRE-EXTRACT huge blobs to ArrayBuffers in the background!
+          // This entirely removes the 5-second delay from the Launch button!
+          const [mBuf, cBuf] = await Promise.all([
+            cachedMasterBlob.arrayBuffer(),
+            cachedCritterBlob.arrayBuffer()
+          ]);
+          masterArrayBuffer = mBuf;
+          critterArrayBuffer = cBuf;
+          
+          statusText.innerHTML = "SYSTEM READY.<br>Assets successfully pre-extracted to RAM!";
+          launchBtn.innerText = 'Initialize Game Runtime';
+          launchBtn.disabled = false;
         } else {
           statusText.innerHTML = "WARNING: Game databanks missing.<br>Please select or drag & drop MASTER.DAT and CRITTER.DAT from your local GOG or Steam installation folder to compile.";
           launchBtn.style.display = 'none';
@@ -607,7 +625,7 @@
 
     // ─── Launch Game ───
     async function launchGame() {
-      if (!cachedMasterBlob || !cachedCritterBlob) return;
+      if (!masterArrayBuffer || !critterArrayBuffer) return;
 
       // Prevent double-click
       launchBtn.disabled = true;
@@ -624,13 +642,6 @@
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
       try {
-        // Read both DAT files in parallel for faster loading
-        loadingText.innerText = 'Reading MASTER.DAT & CRITTER.DAT...';
-        const [masterBuffer, critterBuffer] = await Promise.all([
-          cachedMasterBlob.arrayBuffer(),
-          cachedCritterBlob.arrayBuffer()
-        ]);
-
         loadingText.innerText = 'Preparing WASM filesystem...';
 
         Module.preRun = Module.preRun || [];
@@ -647,8 +658,8 @@
             console.warn('IDBFS mount on home config failed:', e);
           }
 
-          FS.writeFile('master.dat', new Uint8Array(masterBuffer));
-          FS.writeFile('critter.dat', new Uint8Array(critterBuffer));
+          FS.writeFile('master.dat', new Uint8Array(masterArrayBuffer));
+          FS.writeFile('critter.dat', new Uint8Array(critterArrayBuffer));
           FS.writeFile('ddraw.ini', '[Misc]\nSkipOpeningMovies=1\n');
           
           // Disable C++ level fullscreen which crashes Emscripten
