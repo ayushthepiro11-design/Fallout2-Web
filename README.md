@@ -62,6 +62,17 @@ The repository includes a pre-configured `vercel.json` file. It sets up the requ
 
 ---
 
+## 🎖️ Credits & Acknowledgments
+
+This web client is built on top of incredible open-source projects:
+
+* **[fallout2-ce](https://github.com/alexbatalov/fallout2-ce)** - The modern C++ community engine rewrite of Fallout 2 by Alex Batalov.
+* **[Emscripten Compiler](https://emscripten.org/)** - The toolchain that compiled the engine source code into WebAssembly and JavaScript.
+* **[Simple DirectMedia Layer (SDL2)](https://www.libsdl.org/)** - Low-level hardware access layer used for rendering, input routing, and audio.
+* **IndexedDB API & HTML5 WebGL** - Browser technologies used to persistent-cache assets locally and render the game canvas.
+
+---
+
 ## ⚖️ Legal Disclaimer
 
 * This is an unofficial community project.
