@@ -686,12 +686,28 @@
       document.documentElement.classList.add('game-running');
       
       const loadingOverlay = document.getElementById('loading-overlay');
-      if (loadingOverlay) loadingOverlay.style.display = 'none';
+      const loadingText = document.getElementById('loading-text');
       
-      resizeCanvas();
-
-      // Instant boot from RAM!
-      Module.callMain();
+      if (loadingOverlay && loadingText) {
+        loadingOverlay.style.display = 'flex';
+        loadingText.innerHTML = 'Initializing WASM Runtime...';
+        
+        // Cinematic fake loading sequence for recording
+        setTimeout(() => { loadingText.innerHTML = 'Mounting MASTER.DAT... <span style="color: #4ade80">[OK]</span>'; }, 600);
+        setTimeout(() => { loadingText.innerHTML = 'Mounting CRITTER.DAT... <span style="color: #4ade80">[OK]</span>'; }, 1200);
+        setTimeout(() => { loadingText.innerHTML = 'Linking Virtual Filesystem... <span style="color: #4ade80">[OK]</span>'; }, 1800);
+        setTimeout(() => { loadingText.innerHTML = 'Booting Fallout 2 engine...'; }, 2400);
+        
+        setTimeout(() => {
+          loadingOverlay.style.display = 'none';
+          resizeCanvas();
+          // Instant boot from RAM!
+          Module.callMain();
+        }, 3000);
+      } else {
+        resizeCanvas();
+        Module.callMain();
+      }
     }
   </script>
 </body>
