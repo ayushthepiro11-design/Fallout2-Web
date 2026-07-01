@@ -419,9 +419,7 @@
           masterArrayBuffer = mBuf;
           critterArrayBuffer = cBuf;
           
-          statusText.innerHTML = "SYSTEM READY.<br>Assets successfully pre-extracted to RAM!";
-          launchBtn.innerText = 'Initialize Game Runtime';
-          launchBtn.disabled = false;
+          statusText.innerHTML = "SYSTEM READY.<br>Compiling WASM Engine & Writing MEMFS in background... (Wait)";
         } else {
           statusText.innerHTML = "WARNING: Game databanks missing.<br>Please select or drag & drop MASTER.DAT and CRITTER.DAT from your local GOG or Steam installation folder to compile.";
           launchBtn.style.display = 'none';
@@ -472,15 +470,56 @@
       // Emscripten memory optimization: request 256MB initial, 512MB max
       INITIAL_MEMORY: 268435456,
       MAXIMUM_MEMORY: 536870912,
+      noInitialRun: true,
       mouseState: {dx: 0, dy: 0, lb: 0, rb: 0},
-      onRuntimeInitialized: function() {
-        // Hide loading overlay EXACTLY when the C++ engine has booted and compiled the WASM
-        const loadingOverlay = document.getElementById('loading-overlay');
-        if (loadingOverlay) loadingOverlay.style.display = 'none';
+      preRun: [function() {
+        // Pause WASM initialization until ArrayBuffers are ready
+        Module.addRunDependency('load_dat');
         
-        if (typeof resizeCanvas === 'function') resizeCanvas();
+        var checkInterval = setInterval(function() {
+          if (masterArrayBuffer && critterArrayBuffer) {
+            clearInterval(checkInterval);
+            
+            try {
+              FS.mkdir('/home'); FS.mkdir('/home/web_user'); FS.mkdir('/home/web_user/.config'); FS.mkdir('/home/web_user/.config/fallout2-ce');
+              FS.mount(IDBFS, {}, '/home/web_user/.config/fallout2-ce');
+            } catch(e) {}
+            
+            FS.writeFile('master.dat', new Uint8Array(masterArrayBuffer));
+            FS.writeFile('critter.dat', new Uint8Array(critterArrayBuffer));
+            FS.writeFile('ddraw.ini', '[Misc]\nSkipOpeningMovies=1\n');
+            FS.writeFile('f2_res.ini', '[MAIN]\nWINDOWED=1\n');
+            
+            const cfgContent = `[sound]\nmusic_path2=sound\\music\\\nsound_path2=sound\\sfx\\\n\n[system]\ncritter_dat=critter.dat\ncritter_patches=data\nmaster_dat=master.dat\nmaster_patches=data\n`;
+            FS.writeFile('fallout2.cfg', cfgContent);
+            
+            try { FS.mkdir('data'); } catch(e) {}
+            try { FS.mkdir('data/savegame'); FS.mount(IDBFS, {}, 'data/savegame'); } catch(e) {}
+            try { FS.mkdir('sound'); FS.mkdir('sound/music'); FS.mkdir('sound/sfx'); } catch(e) {}
+            
+            FS.syncfs(true, function(err) {
+              Module.removeRunDependency('load_dat'); // Resume WASM initialization
+            });
+          }
+        }, 100);
+      }],
+      onRuntimeInitialized: function() {
+        // Engine is perfectly primed in RAM. Enable the button!
+        const launchBtn = document.getElementById('launch-btn');
+        const statusText = document.getElementById('status');
+        if (launchBtn) {
+          launchBtn.innerText = 'Initialize Game Runtime';
+          launchBtn.disabled = false;
+        }
+        if (statusText) statusText.innerHTML = "SYSTEM READY.<br>Assets pre-extracted and engine compiled!";
       }
     };
+    
+    // Start downloading and compiling the WASM engine in the background immediately
+    var script = document.createElement('script');
+    script.src = 'fallout2-ce.js';
+    script.async = true;
+    document.body.appendChild(script);
 
     // ─── Optimized Mouse Input (Absolute to Relative Bridge) ───
     // FocuSee and other screen recorders track the physical OS cursor. 
@@ -624,118 +663,35 @@
     });
 
     // ─── Launch Game ───
-    async function launchGame() {
+    function launchGame() {
       if (!masterArrayBuffer || !critterArrayBuffer) return;
 
       // Prevent double-click
       launchBtn.disabled = true;
-      launchBtn.innerText = 'LOADING...';
-
+      launchBtn.innerText = 'LAUNCHING...';
+      
       // Trigger fullscreen immediately synchronously with the user click
       goFullscreen();
 
-      // Show loading overlay
-      loadingOverlay.style.display = 'flex';
-      loadingText.innerText = 'Extracting databanks to WASM memory...';
+      // Set up auto-syncing of save games from MEMFS back to IDBFS every 5 seconds
+      setInterval(function() {
+        if (gameStarted && typeof FS !== 'undefined') {
+          FS.syncfs(false, function(err) {});
+        }
+      }, 5000);
 
-      // Give the UI a frame to paint the overlay before heavy work
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      document.getElementById('start-screen').style.display = 'none';
+      gameStarted = true;
+      document.body.classList.add('game-running');
+      document.documentElement.classList.add('game-running');
+      
+      const loadingOverlay = document.getElementById('loading-overlay');
+      if (loadingOverlay) loadingOverlay.style.display = 'none';
+      
+      resizeCanvas();
 
-      try {
-        loadingText.innerText = 'Preparing WASM filesystem...';
-
-        Module.preRun = Module.preRun || [];
-        Module.preRun.push(function() {
-          // Mount IDBFS for persistent savegames in IndexedDB
-          try {
-            // Emscripten config directories
-            FS.mkdir('/home');
-            FS.mkdir('/home/web_user');
-            FS.mkdir('/home/web_user/.config');
-            FS.mkdir('/home/web_user/.config/fallout2-ce');
-            FS.mount(IDBFS, {}, '/home/web_user/.config/fallout2-ce');
-          } catch(e) {
-            console.warn('IDBFS mount on home config failed:', e);
-          }
-
-          FS.writeFile('master.dat', new Uint8Array(masterArrayBuffer));
-          FS.writeFile('critter.dat', new Uint8Array(critterArrayBuffer));
-          FS.writeFile('ddraw.ini', '[Misc]\nSkipOpeningMovies=1\n');
-          
-          // Disable C++ level fullscreen which crashes Emscripten
-          FS.writeFile('f2_res.ini', '[MAIN]\nWINDOWED=1\n');
-          
-          // Default config
-          const cfgContent = `[sound]\nmusic_path2=sound\\music\\\nsound_path2=sound\\sfx\\\n\n[system]\ncritter_dat=critter.dat\ncritter_patches=data\nmaster_dat=master.dat\nmaster_patches=data\n`;
-          FS.writeFile('fallout2.cfg', cfgContent);
-
-          // Create required directories
-          try { FS.mkdir('data'); } catch(e) {}
-          
-          try {
-            // Create game save directory and mount IDBFS as fallback
-            FS.mkdir('data/savegame');
-            FS.mount(IDBFS, {}, 'data/savegame');
-          } catch(e) {
-            console.warn('IDBFS mount on data/savegame failed:', e);
-          }
-
-          try { FS.mkdir('sound'); } catch(e) {}
-          try { FS.mkdir('sound/music'); } catch(e) {}
-          try { FS.mkdir('sound/sfx'); } catch(e) {}
-
-          // Synchronize from IndexedDB to virtual filesystem on boot
-          FS.syncfs(true, function(err) {
-            if (err) console.error('Failed to syncfs from IDBFS:', err);
-            else console.log('Successfully synced savegames from IDBFS');
-          });
-        });
-
-        // Set up auto-syncing of save games from MEMFS back to IDBFS every 5 seconds
-        setInterval(function() {
-          if (gameStarted && typeof FS !== 'undefined') {
-            FS.syncfs(false, function(err) {
-              if (err) console.error('Auto-sync of savegames to IDBFS failed:', err);
-            });
-          }
-        }, 5000);
-
-        // Hide start screen
-        document.getElementById('start-screen').style.display = 'none';
-        gameStarted = true;
-
-        // Add game-running CSS class
-        document.body.classList.add('game-running');
-        document.documentElement.classList.add('game-running');
-
-        // Load fallout2-ce runtime
-        loadingText.innerText = 'Booting Fallout 2 engine...';
-        var script = document.createElement('script');
-        script.src = 'fallout2-ce.js';
-        script.async = true;
-        // script.onload is no longer responsible for hiding the overlay,
-        // Module.onRuntimeInitialized handles it precisely when the WASM is fully compiled.
-        script.onload = function() {
-          console.log('Engine JS parsed, compiling WASM...');
-        };
-        script.onerror = function() {
-          loadingOverlay.style.display = 'none';
-          alert('Failed to load game engine (fallout2-ce.js). Please refresh and try again.');
-        };
-        document.body.appendChild(script);
-
-        // Resize checks
-        setTimeout(resizeCanvas, 2000);
-        setTimeout(resizeCanvas, 5000);
-        setTimeout(resizeCanvas, 10000);
-
-      } catch (err) {
-        console.error('Launch error:', err);
-        loadingOverlay.style.display = 'none';
-        launchBtn.disabled = false;
-        launchBtn.innerText = 'Initialize Game Runtime';
-        alert('Failed to launch: ' + err.message);
-      }
+      // Instant boot from RAM!
+      Module.callMain();
     }
   </script>
 </body>
