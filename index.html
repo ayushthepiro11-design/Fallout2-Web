@@ -9,6 +9,8 @@
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☢</text></svg>">
   <title>Fallout 2 - Web Port</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☢</text></svg>">
+  <link rel="preload" href="fallout2-ce.js" as="script">
+  <link rel="preload" href="fallout2-ce.wasm" as="fetch" crossorigin="anonymous">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -452,7 +454,14 @@
       // Emscripten memory optimization: request 256MB initial, 512MB max
       INITIAL_MEMORY: 268435456,
       MAXIMUM_MEMORY: 536870912,
-      mouseState: {dx: 0, dy: 0, lb: 0, rb: 0}
+      mouseState: {dx: 0, dy: 0, lb: 0, rb: 0},
+      onRuntimeInitialized: function() {
+        // Hide loading overlay EXACTLY when the C++ engine has booted and compiled the WASM
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        
+        if (typeof resizeCanvas === 'function') resizeCanvas();
+      }
     };
 
     // ─── Optimized Mouse Input (Absolute to Relative Bridge) ───
@@ -693,12 +702,10 @@
         var script = document.createElement('script');
         script.src = 'fallout2-ce.js';
         script.async = true;
+        // script.onload is no longer responsible for hiding the overlay,
+        // Module.onRuntimeInitialized handles it precisely when the WASM is fully compiled.
         script.onload = function() {
-          // Hide loading overlay once the script starts executing
-          setTimeout(function() {
-            loadingOverlay.style.display = 'none';
-            resizeCanvas();
-          }, 1500);
+          console.log('Engine JS parsed, compiling WASM...');
         };
         script.onerror = function() {
           loadingOverlay.style.display = 'none';
