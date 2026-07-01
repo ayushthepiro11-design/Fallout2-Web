@@ -1,18 +1,18 @@
 # ☢️ Fallout 2 Web Client
 
-Play the classic post-apocalyptic RPG **Fallout 2** directly inside your web browser. This is an unofficial web port powered by Emscripten and WebAssembly (`fallout2-ce`), optimized for hosting on static web servers (like Vercel).
+Play the classic post-apocalyptic RPG **Fallout 2** directly inside your web browser. This is an unofficial web port powered by Emscripten and WebAssembly (`fallout2-ce`), fully optimized for static web hosting.
 
 ---
 
 ## 🚀 How to Play
 
-To play the game, you need to bring your own original Fallout 2 game assets. This client does **not** host or distribute any copyrighted files.
+To play the game, you need to supply your own original Fallout 2 game assets. This client does **not** host, package, or distribute any copyrighted files.
 
-1. Open the hosted web application.
-2. Drag and drop the following files from your local Fallout 2 installation folder (GOG, Steam, or original CD):
+1. Open the web application.
+2. Drag and drop the following files from your local Fallout 2 installation directory (GOG, Steam, or original CD):
    * **`MASTER.DAT`**
    * **`CRITTER.DAT`**
-3. Wait a few seconds for the client to save these files into your browser's **IndexedDB** storage. *(You only need to do this once!)*
+3. Wait a few seconds for the client to save these files into your browser's **IndexedDB** local storage. *(This is a one-time process; assets are persisted locally).*
 4. Click **Initialize Game Runtime** to boot the game.
 5. Press **F11** or click the fullscreen toggle to play in fullscreen.
 
@@ -21,24 +21,24 @@ To play the game, you need to bring your own original Fallout 2 game assets. Thi
 ## ⚡ Key Features
 
 * **Persistent Offline Storage:** Uses browser IndexedDB to save your game files locally. The next time you visit the page, the game boots up instantly without re-uploading.
-* **WebGL Rendering:** Pixel-perfect rendering with aspect-ratio scaling to keep the retro CRT look.
-* **Input Lock:** Traps input controls and prevents browser key defaults (like backspace, tab, or context menu) from interrupting your gameplay.
-* **Reset Database Button:** Easily clear your saved databanks to re-upload files or change GOG/Steam assets in one click.
+* **WebGL Rendering:** Pixel-perfect rendering with aspect-ratio scaling to preserve the retro CRT presentation.
+* **Input Interceptor:** Captures key controls and blocks default browser events (like backspace, tab, or context menu) from interrupting your gameplay.
+* **Reset Storage Button:** Clear saved databanks in one click to re-upload files or change GOG/Steam assets.
 
 ---
 
 ## 🛠️ Self-Hosting & Running Locally
 
-If you want to run this client locally on your own computer:
+If you want to run this client locally on your own machine:
 
 ### 1. Clone the repository
 ```bash
-git clone <your-repository-url>
-cd legal-app
+git clone https://github.com/ayushthepiro11-design/Fallout2-Web.git
+cd Fallout2-Web
 ```
 
 ### 2. Run a local server
-Because of browser CORS and WebAssembly security restrictions, you cannot launch this by double-clicking `index.html`. You must run it through a local HTTP server.
+Because of browser CORS and WebAssembly security restrictions, you cannot launch this by double-clicking `index.html`. You must run it through a local web server.
 
 * **Using Python:**
   ```bash
@@ -53,12 +53,16 @@ Open your browser and navigate to `http://localhost:8081`.
 
 ---
 
-## 🌐 Deploying to Vercel
+## 🌐 Deployment
 
-The repository includes a pre-configured `vercel.json` file. It sets up the required security headers (COOP and COEP) and MIME types necessary for WebAssembly runtimes:
+This project is pre-configured for seamless deployment to static hosting platforms like **Vercel** or **Netlify**.
 
-1. Connect your repository to your Vercel account.
-2. Click **Deploy**. Vercel will automatically handle the rest as a zero-config static site.
+The included `vercel.json` file automatically handles setting up the required security headers (COOP and COEP) and MIME types necessary for WebAssembly runtimes:
+
+* **Cross-Origin-Opener-Policy:** `same-origin`
+* **Cross-Origin-Embedder-Policy:** `require-corp`
+
+Simply link this repository to your hosting provider of choice and trigger a deployment.
 
 ---
 
