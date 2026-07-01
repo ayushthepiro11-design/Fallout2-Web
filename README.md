@@ -22,7 +22,8 @@ To play the game, you need to supply your own original Fallout 2 game assets. Th
 
 ## ⚡ Key Features
 
-* **Persistent Offline Storage:** Uses browser IndexedDB to save your game files locally. The next time you visit the page, the game boots up instantly without re-uploading.
+* **PWA & 100% Offline Support:** The web app installs a service worker and acts as a Progressive Web App (PWA). You can install it on your device and play completely offline without an internet connection!
+* **Persistent Offline Storage:** Uses browser IndexedDB to save your game files locally. Save games and config files are also automatically persisted.
 * **WebGL Rendering:** Pixel-perfect rendering with aspect-ratio scaling to preserve the retro CRT presentation.
 * **Input Interceptor:** Captures key controls and blocks default browser events (like backspace, tab, or context menu) from interrupting your gameplay.
 * **Reset Storage Button:** Clear saved databanks in one click to re-upload files or change GOG/Steam assets.

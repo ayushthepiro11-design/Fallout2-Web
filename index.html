@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="description" content="Play Fallout 2 in your browser. Drag and drop your game files to start.">
+  <meta name="theme-color" content="#050d05">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☢</text></svg>">
   <title>Fallout 2 - Web Port</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☢</text></svg>">
   <style>
@@ -249,6 +252,17 @@
   <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="1"></canvas>
 
   <script type='text/javascript'>
+    // ─── PWA Service Worker Registration ───
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((registration) => {
+          console.log('ServiceWorker registered with scope:', registration.scope);
+        }).catch((error) => {
+          console.error('ServiceWorker registration failed:', error);
+        });
+      });
+    }
+
     // ─── Performance: Single DB connection pool ───
     const DB_NAME = 'Fallout2WebDB';
     const STORE_NAME = 'files';
