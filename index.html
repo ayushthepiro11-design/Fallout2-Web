@@ -455,10 +455,35 @@
       mouseState: {dx: 0, dy: 0, lb: 0, rb: 0}
     };
 
-    // ─── Optimized Mouse Input (passive listeners, no GC pressure) ───
+    // ─── Optimized Mouse Input (Absolute to Relative Bridge) ───
+    // FocuSee and other screen recorders track the physical OS cursor. 
+    // To prevent the game's software cursor from drifting away from the OS cursor, 
+    // we map absolute OS coordinates to the 640x480 internal game resolution
+    // and inject precise deltas into the engine.
+    var virtualX = 320; // Game cursor boots at center of 640x480
+    var virtualY = 240;
+    
     document.addEventListener('mousemove', function(e) {
-      Module.mouseState.dx += (e.movementX || 0);
-      Module.mouseState.dy += (e.movementY || 0);
+      if (!canvasEl.getBoundingClientRect) return;
+      var rect = canvasEl.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      // Calculate absolute OS cursor mapped to game 640x480 space
+      var normX = (e.clientX - rect.left) / rect.width;
+      var normY = (e.clientY - rect.top) / rect.height;
+      var targetX = Math.round(normX * 640);
+      var targetY = Math.round(normY * 480);
+      
+      // Clamp to game bounds so virtualX never drifts from internal engine bounds
+      targetX = Math.max(0, Math.min(639, targetX));
+      targetY = Math.max(0, Math.min(479, targetY));
+
+      // Inject the exact delta required to snap the game cursor to the OS cursor
+      Module.mouseState.dx += (targetX - virtualX);
+      Module.mouseState.dy += (targetY - virtualY);
+      
+      virtualX = targetX;
+      virtualY = targetY;
     }, { passive: true });
 
     document.addEventListener('mousedown', function(e) {
