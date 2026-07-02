@@ -10,7 +10,7 @@ Play the classic post-apocalyptic RPG **Fallout 2** directly inside your web bro
 
 To play the game, you need to supply your own original Fallout 2 game assets. This client does **not** host, package, or distribute any copyrighted files.
 
-1. Open the web application.
+1. Open the live web application: **[fallout2-web.vercel.app](https://fallout2-web.vercel.app/)**
 2. Drag and drop the following files from your local Fallout 2 installation directory (GOG, Steam, or original CD):
    * **`MASTER.DAT`**
    * **`CRITTER.DAT`**
@@ -56,18 +56,6 @@ Open your browser and navigate to `http://localhost:8081`.
 
 ---
 
-## 🌐 Deployment
-
-This project is pre-configured for seamless deployment to static hosting platforms like **Vercel** or **Netlify**.
-
-The included `vercel.json` file automatically handles setting up the required security headers (COOP and COEP) and MIME types necessary for WebAssembly runtimes:
-
-* **Cross-Origin-Opener-Policy:** `same-origin`
-* **Cross-Origin-Embedder-Policy:** `require-corp`
-
-Simply link this repository to your hosting provider of choice and trigger a deployment.
-
----
 
 ## 🎖️ Credits & Acknowledgments
 
