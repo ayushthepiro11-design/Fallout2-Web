@@ -521,11 +521,10 @@
       }
     }
 
-    // ─── Optimized Mouse Input (Absolute to Relative Bridge) ───
-    // FocuSee and other screen recorders track the physical OS cursor. 
-    // To prevent the game's software cursor from drifting away from the OS cursor, 
-    // we map absolute OS coordinates to the 640x480 internal game resolution
-    // and inject precise deltas into the engine.
+     // ─── Optimized Mouse Input (Absolute to Relative Coordinates) ───
+     // Maps the absolute system pointer coordinates to the game's internal 640x480 resolution.
+     // To ensure perfect alignment with OS cursor tracking utilities, we inject precise 
+     // coordinate deltas into the engine runtime rather than relying solely on raw pointer movement deltas.
     var virtualX = 320; // Game cursor boots at center of 640x480
     var virtualY = 240;
     
@@ -698,7 +697,7 @@
         script.async = true;
         document.body.appendChild(script);
 
-        // Cinematic fake loading sequence for recording
+        // Orchestrate loading sequence steps for the UI transition
         setTimeout(() => { loadingText.innerHTML = 'Mounting MASTER.DAT... <span style="color: #4ade80">[OK]</span>'; }, 600);
         setTimeout(() => { loadingText.innerHTML = 'Mounting CRITTER.DAT... <span style="color: #4ade80">[OK]</span>'; }, 1200);
         setTimeout(() => { loadingText.innerHTML = 'Linking Virtual Filesystem... <span style="color: #4ade80">[OK]</span>'; }, 1800);
